@@ -1,0 +1,6 @@
+lec_in_day:7
+daysoff:1
+days_val:Monday
+lec_default:5
+max_days:5
+Data:none
