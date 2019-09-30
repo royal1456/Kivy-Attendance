@@ -502,7 +502,7 @@ class Updating(Screen):
         self.i = Infopopup(self)
         self.holiday = 'w'
         self.days = 'Monday'
-        set()
+        self.set()
 
 #-----------Holidays-setting-------------------------
 
@@ -551,7 +551,7 @@ class Updating(Screen):
 
 #-----------Ideal-Settings--------------------------
 
-    def set():
+    def set(self):
         global max, max_view, default, daysoff, days_val, data, error, db
         #-----------la-lt-being-setted-----------------------
         self.spinner_up_la.values = tuple([str(x) for x in range(max + 1)])
@@ -635,7 +635,7 @@ class Set(Screen):
         self.default_la.text = str(default)
         self.spinner_up.text = str(days_val)
         self.database_name.text = str(data)
-        Updating.set()
+        # Updating.set()
         # self.spinner_up.self.selected_values = ['Saturday', 'Sunday']
     pass
 
