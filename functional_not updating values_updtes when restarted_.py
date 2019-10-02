@@ -254,6 +254,7 @@ Builder.load_string("""
     spinner_up_lt:spinner_up_lt
     spinner_up_la:spinner_up_la
     box_id:box_id
+    took_off:took_off
 
     FloatLayout:
         padding : 10, 10
@@ -303,6 +304,16 @@ Builder.load_string("""
             size_hint:0.12,0.07
             pos_hint:{'x':0.5,'y':0.4}
             on_active: root.box_on(self,self.active)
+            color:0,0,0,1
+        Customlabel:
+            text:"Took Off"
+            font_size:30
+            pos_hint:{'x':0.1,'y':0.3}
+        CheckBox:      ##for holiday taken-------------------------------ui-command
+            id: took_off
+            size_hint:0.12,0.07
+            pos_hint:{'x':0.5,'y':0.3}
+            on_active: root.took_off_day(self,self.active)
             color:0,0,0,1
         Custombutton:
             font_size:14
@@ -497,6 +508,7 @@ class Updating(Screen):
         spinner_up_lt = ObjectProperty(None)
         spinner_up_la = ObjectProperty(None)
         box_id = ObjectProperty(None)
+        took_off = ObjectProperty(None)
         # self.t is aninstance of mypop and here self passed act as my_widget
         self.t = MyPopup(self)
         self.i = Infopopup(self)
@@ -507,7 +519,7 @@ class Updating(Screen):
 #-----------Holidays-setting-------------------------
 
     def set_holiday(self):  # setting values for all spinners in case of holiday
-        self.spinner_up_la.values = self.spinner_up_la.values = (
+        self.spinner_up_la.values = self.spinner_up_lt.values = (
             '0')  # (total lectures equal)
         self.spinner_up_la.text = self.spinner_up_lt.text = '0'
 
@@ -518,10 +530,16 @@ class Updating(Screen):
             self.holiday = 'h'
         else:
             self.holiday = 'w'
-
+            self.set_la_lt_default()
+    def took_off_day(self, instance, value):
+        if(value is True):
+            self.box_id.active = 'True'
+            print('took off called')
+        else:
+            self.set_la_lt_default()
     def popup(self):
         text = "Confirm entery of " + self.datepickers.text + " as a " + \
-            ("\n holiday" if(self.box_id.state == "active") else "\n working day.")
+            ("\n holiday" if(self.box_id.state == "down") else "\n working day.")
         self.t.open()
         self.t.label.text = text
         # self.t.label refers to label decalred in my_wifget in popup
@@ -532,7 +550,10 @@ class Updating(Screen):
         self.days = datetime.date(year, month, day).strftime("%A")
         if(self.days in days_val.split(',')):
             print('callllled')
-            self.box_id.value = 'True'
+            self.box_id.active = 'True'
+
+
+
 
     def submit(self):
         global max, max_view, default, daysoff, days_val, data, error, db
@@ -549,17 +570,20 @@ class Updating(Screen):
         self.set()
         self.t.dismiss()
 
+    def set_la_lt_default():
+        self.spinner_up_la.values = tuple([str(x) for x in range(max + 1)])
+        # (total lectures equal)
+        self.spinner_up_lt.values = self.spinner_up_la.values
+        self.spinner_up_la.text = str(default)
+        self.spinner_up_lt.text = str(max)
+
 #-----------Ideal-Settings--------------------------
 
     def set(self):
         global max, max_view, default, daysoff, days_val, data, error, db
         #-----------la-lt-being-setted-----------------------
-        self.spinner_up_la.values = tuple([str(x) for x in range(max + 1)])
-        # (total lectures equal)
         self.datepickers.text = ('-'.join(self.datepickers.text.split('/')))
-        self.spinner_up_lt.values = self.spinner_up_la.values
-        self.spinner_up_la.text = str(default)
-        self.spinner_up_lt.text = str(max)
+        self.set_la_lt_default()
         self.box_id.value = 'False'
     pass
 
