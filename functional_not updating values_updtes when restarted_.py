@@ -51,13 +51,20 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.properties import BooleanProperty
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.behaviors import FocusBehavior
+from kivy.uix.behaviors import FocusBehavior, ButtonBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.slider import Slider
 from kivy.uix.dropdown import DropDown
 from kivy.uix.button import Button
 from att_interactdb import database
 import datetime
+from functools import partial  # --animation progress bar circular
+from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
+from kivy.graphics import Color, Ellipse, Rectangle
+from kivy.uix.image import Image
+from kivy.uix.progressbar import ProgressBar
+import time
 # Window.size = (550, 700)
 
 
@@ -116,7 +123,7 @@ Builder.load_string("""
 #:import Factory kivy.factory.Factory
 
 
-##------------------Essentials---------------------------
+# ------------------Essentials---------------------------
 
 
 <SelectableLabel>:
@@ -127,6 +134,8 @@ Builder.load_string("""
         Rectangle:
             pos: self.pos
             size: self.size
+<Imagebutton>:
+    size_hint: (None, None)
 
 <MultiSelectOption@ToggleButton>:
     size_hint: 1, None
@@ -206,7 +215,7 @@ Builder.load_string("""
 
 
 
-##------------------Main_interface---------------------------
+# ------------------Main_interface---------------------------
 
 
 
@@ -244,7 +253,7 @@ Builder.load_string("""
 
 
 
-##------------------Update_data---------------------------
+# ------------------Update_data---------------------------
 
 
 
@@ -255,7 +264,7 @@ Builder.load_string("""
     spinner_up_la:spinner_up_la
     box_id:box_id
     took_off:took_off
-
+    notification:notification
     FloatLayout:
         padding : 10, 10
         Customlabel:
@@ -299,6 +308,13 @@ Builder.load_string("""
             text:"Holiday"
             font_size:30
             pos_hint:{'x':0.1,'y':0.4}
+        Customlabel:
+            id:notification
+            text:"(unchecking this box will make the holiday counted as working day)"
+            font_size:12
+            opacity: 0
+            pos_hint:{'x':0.1,'y':0.38}
+
         CheckBox:      ##for holiday cheking-------------------------------ui-command
             id: box_id
             size_hint:0.12,0.07
@@ -327,7 +343,7 @@ Builder.load_string("""
 
 
 
-##------------------Delete_data---------------------------
+# ------------------Delete_data---------------------------
 
 
 
@@ -381,11 +397,19 @@ Builder.load_string("""
     FloatLayout:
         size_hint:1,0
         id:val
+        Imagebutton:##--to update database
+            source:'icons/checkmark-outline.png'
+            on_press:root.update()
+
+        Imagebutton:##--to refresh text
+            source:'icons/refresh-outline.png'
+            on_press:root.get_selected()
         RV:
+            data:root.row
 
 
 
-##------------------Set_data---------------------------
+# ------------------Set_data---------------------------
 
 
 
@@ -466,7 +490,7 @@ Builder.load_string("""
 
 
 
-##------------------View_data---------------------------
+# ------------------View_data---------------------------
 
 
 
@@ -503,18 +527,21 @@ class Updating(Screen):
         super().__init__(**kwargs)
 
 #-----------Calling-Ids--------------Class-Variables-----------
+        Clock.schedule_once(self._do_setup)
+        # self.t is aninstance of mypop and here self passed act as my_widget
+        self.set()
 
+    def _do_setup(self, *args):
         datepickers = ObjectProperty(None)
         spinner_up_lt = ObjectProperty(None)
         spinner_up_la = ObjectProperty(None)
         box_id = ObjectProperty(None)
         took_off = ObjectProperty(None)
-        # self.t is aninstance of mypop and here self passed act as my_widget
+        notification = ObjectProperty(None)
         self.t = MyPopup(self)
         self.i = Infopopup(self)
         self.holiday = 'w'
         self.days = 'Monday'
-        self.set()
 
 #-----------Holidays-setting-------------------------
 
@@ -524,19 +551,32 @@ class Updating(Screen):
         self.spinner_up_la.text = self.spinner_up_lt.text = '0'
 
     def box_on(self, instance, value):
-        self.checkdate()
+        print('called box on')
         if(value is True):
             self.set_holiday()
+            self.notification.opacity = 1
             self.holiday = 'h'
+            self.took_off.active = False
         else:
+            # self.notification.font_size = 0
+            self.notification.opacity = 0
             self.holiday = 'w'
             self.set_la_lt_default()
+
+    def on_enter(self):
+        print('/n \n entered called')
+
     def took_off_day(self, instance, value):
+        print('caleed took off')
         if(value is True):
-            self.box_id.active = 'True'
+            self.box_id.active = False
+            self.holiday = 'w'
+            self.spinner_up_la.values = ('0')
+            self.spinner_up_la.text = '0'
             print('took off called')
         else:
-            self.set_la_lt_default()
+            self.checkdate()
+
     def popup(self):
         text = "Confirm entery of " + self.datepickers.text + " as a " + \
             ("\n holiday" if(self.box_id.state == "down") else "\n working day.")
@@ -550,14 +590,11 @@ class Updating(Screen):
         self.days = datetime.date(year, month, day).strftime("%A")
         if(self.days in days_val.split(',')):
             print('callllled')
-            self.box_id.active = 'True'
-
-
-
+            self.box_id.active = True
 
     def submit(self):
-        global max, max_view, default, daysoff, days_val, data, error, db
-        print("called", self.datepickers.text)
+        global error, db
+        print("called submit", self.datepickers.text)
         db.create()
         self.checkdate()
         try:
@@ -570,7 +607,7 @@ class Updating(Screen):
         self.set()
         self.t.dismiss()
 
-    def set_la_lt_default():
+    def set_la_lt_default(self):
         self.spinner_up_la.values = tuple([str(x) for x in range(max + 1)])
         # (total lectures equal)
         self.spinner_up_lt.values = self.spinner_up_la.values
@@ -584,7 +621,7 @@ class Updating(Screen):
         #-----------la-lt-being-setted-----------------------
         self.datepickers.text = ('-'.join(self.datepickers.text.split('/')))
         self.set_la_lt_default()
-        self.box_id.value = 'False'
+        self.box_id.value = False
     pass
 
 
@@ -594,10 +631,18 @@ class Updating(Screen):
 class Deleting(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        Clock.schedule_once(self._do_setup)
+        self.set()
+
+    def _do_setup(self, *args):
         switch_id = ObjectProperty(None)
         slider = ObjectProperty(None)
         val = ObjectProperty(None)
-        self.set()
+
+    def on_enter(self):
+        print('/n \n entered called')
+        row = ListProperty([])
+        self.row = [{'text': 'no entry yet'}]
 
     def on_active(self, instance, value):
         print("caleed ", value)
@@ -610,8 +655,21 @@ class Deleting(Screen):
             self.val.size_hint = 1, 0
             # self.remove_widget(self.x)
 
+    def get_selected(self):
+        global max, max_view, default, daysoff, days_val, data, error, db
+        # if(SelectableLabel.selected_values):
+
+    def update(self):
+        global db
+        v = db.show_all()
+        print(v)
+
     def set(self):
         # self.data requires----------------- {'text': '9'}]--list pf dictonary
+        self.row = [{'text': 'no entry yet'}]
+        print("called set of RV")
+        print('rv,setted=', self.row)
+        print(db.show_all())  # -----------------testing
         self.slider.max = max_view
     pass
 
@@ -740,8 +798,10 @@ class Infopopup(Popup):
         super().__init__(**kwargs)
         self.my_widget = my_widget  # mywidget instance is used to accees child values
         label = ObjectProperty(None)
-    pass
 
+
+class Imagebutton(ButtonBehavior, Image):  # -------------oder yhi hpga call ka
+    pass
 # class--------------View_for_deletion---------
 
 
@@ -755,6 +815,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
     index = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
+    selected_values = []
 
     def refresh_view_attrs(self, rv, index, data):
         ''' Catch and handle the view changes '''
@@ -774,15 +835,16 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
         self.selected = is_selected
         if is_selected:
             print("selection changed to {0}".format(rv.data[index]))
+            self.selected_values.append(rv.data[index])
         else:
             print("selection removed for {0}".format(rv.data[index]))
+            self.selected_values.remove(rv.data[index])
 
 
 class RV(RecycleView):  # ---------------------------popup?
     def __init__(self, **kwargs):
         super(RV, self).__init__(**kwargs)
-
-        self.data = [{'text': str(x)} for x in range(10)]
+        self.data = [{'text': 'no entry yet'}]
 
 #---------up-----------------------------
 
