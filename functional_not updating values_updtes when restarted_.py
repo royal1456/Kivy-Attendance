@@ -104,7 +104,7 @@ def get_data():
             max_view = int(values[4][1])
             data = values[5][1]
     except:
-        error = 'unable to read database'
+        error = 'unable to read database of settings'
         print(error)
         set_data()
         get_data()
@@ -128,12 +128,27 @@ Builder.load_string("""
 
 <SelectableLabel>:
     # Draw a background to indicate selection
+    col1:col1
+    col2:col2
+    col3:col3
+    col4:col4
+    col5:col5
     canvas.before:
         Color:
             rgba: (.0, 0.9, .1, .3) if self.selected else (0, 0, 0, 1)
         Rectangle:
             pos: self.pos
             size: self.size
+    Label:
+        id:col1
+    Label:
+        id:col2
+    Label:
+        id:col3
+    Label:
+        id:col4
+    Label:
+        id:col5
 <Imagebutton>:
     size_hint: (None, None)
 
@@ -207,8 +222,8 @@ Builder.load_string("""
 <RV>:
     viewclass: 'SelectableLabel'
     SelectableRecycleBoxLayout:
-        default_pos_hint:{"x":0.3}
-        default_size_hint: 0.5,0.4
+        default_pos_hint:{"x":0.01}
+        default_size_hint: 0.3,0.1
         orientation: 'vertical'
         multiselect: True
         touch_multiselect: True
@@ -352,7 +367,7 @@ Builder.load_string("""
     switch_id:switch_id
     slider:slider
     val:val
-    FloatLayout:
+    recycleview:recycleview
         size_hint:1,0.5
         padding : 10, 10
         Customlabel:
@@ -398,14 +413,19 @@ Builder.load_string("""
         size_hint:1,0
         id:val
         Imagebutton:##--to update database
+            pos_hint:{'x':0.6,'y':0.45+0.67}
+            size_hint:0.1,0.07
             source:'icons/checkmark-outline.png'
             on_press:root.update()
 
         Imagebutton:##--to refresh text
+            pos_hint:{'x':0.7,'y':0.45+0.67}
+            size_hint:0.1,0.07
             source:'icons/refresh-outline.png'
-            on_press:root.get_selected()
+            on_press:root.refresh()
         RV:
-            data:root.row
+            id:recycleview
+
 
 
 
@@ -603,7 +623,7 @@ class Updating(Screen):
         except:
             self.i.open()
             self.i.label.text = '\nINVALID ENTRY TO DATABASE\n\n ->Check Respective Constrain\n ->Chek for duplicate entries'
-        print(db.show_all())  # -----------------testing
+        print(db.show_all(), db)  # -----------------testing
         self.set()
         self.t.dismiss()
 
@@ -638,11 +658,12 @@ class Deleting(Screen):
         switch_id = ObjectProperty(None)
         slider = ObjectProperty(None)
         val = ObjectProperty(None)
+        row = ListProperty([])
+        recycleview = ObjectProperty(None)
 
     def on_enter(self):
         print('/n \n entered called')
-        row = ListProperty([])
-        self.row = [{'text': 'no entry yet'}]
+        self.refresh()
 
     def on_active(self, instance, value):
         print("caleed ", value)
@@ -655,23 +676,46 @@ class Deleting(Screen):
             self.val.size_hint = 1, 0
             # self.remove_widget(self.x)
 
-    def get_selected(self):
-        global max, max_view, default, daysoff, days_val, data, error, db
-        # if(SelectableLabel.selected_values):
+    def refresh(self):
+        global db
+        print(db, db.show_all())
+        try:
+            database_values = db.show_all()
+            self.set_rv_to_none()
+            for tuples in database_values:
+                print(tuples[0])
+                self.recycleview.data.append({'col1': {'text': str(tuples[0])}, 'col2': {'text': str(tuples[1])}, 'col3': {
+                                             'text': str(tuples[2])}, 'col4': {'text': str(tuples[3])}, 'col5': {'text': str(tuples[4])}})
+                # {[ {'label2': {'text': 'pineapple'}, 'label3': {'text': 'cat'} }, {'label2': {'text': 'apple'}, 'label3': {'text': 'rat'}}, {'label2': {'text': 'banana'}, 'label3': {'text': 'dog'}}, {'label2': {'text': 'pear'}, 'label3': {'text': 'bat'}}]}
+            # print(database_values)--no need of zip here
+        except:
+            error = 'No Data Exist to update yet'
+            print(error)
+
+    # def get_selected(self):
+    #     global max, max_view, default, daysoff, days_val, data, error, db
 
     def update(self):
         global db
-        v = db.show_all()
-        print(v)
+
+        if(SelectableLabel.selected_values):
+            print(SelectableLabel.selected_values)
+        else:
+            error = 'Nothing to Delete here'
+            print(error)
+
+    def set_rv_to_none(self):
+        self.recycleview.data = self.row
 
     def set(self):
         # self.data requires----------------- {'text': '9'}]--list pf dictonary
-        self.row = [{'text': 'no entry yet'}]
+        self.row = [{'col1': {'text': 'no entry yet'}, 'col2': {'text': 'no entry yet'}, 'col3': {
+            'text': 'no entry yet'}, 'col4': {'text': 'no entry yet'}, 'col5': {'text': 'no entry yet'}}]  # a base row
         print("called set of RV")
         print('rv,setted=', self.row)
-        print(db.show_all())  # -----------------testing
+        # print(db.show_all())  # -----------------testing
         self.slider.max = max_view
-    pass
+        self.set_rv_to_none()
 
 
 #------------------------SETTING_INTERFACE---------------------------------
@@ -810,16 +854,28 @@ class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior,
     ''' Adds selection and focus behaviour to the view. '''
 
 
-class SelectableLabel(RecycleDataViewBehavior, Label):
+class SelectableLabel(RecycleDataViewBehavior, GridLayout):
     ''' Add selection support to the Label '''
     index = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
+    cols = 5
     selected_values = []
+    col1 = ObjectProperty(None)
+    col2 = ObjectProperty(None)
+    col3 = ObjectProperty(None)
+    col4 = ObjectProperty(None)
+    col5 = ObjectProperty(None)
 
     def refresh_view_attrs(self, rv, index, data):
         ''' Catch and handle the view changes '''
         self.index = index
+        self.col1.text = str(index)
+        self.col2.text = data['col2']['text']
+        self.col3.text = data['col3']['text']
+        self.col4.text = data['col4']['text']
+        self.col5.text = data['col5']['text']
+
         return super().refresh_view_attrs(
             rv, index, data)
 
@@ -838,7 +894,10 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
             self.selected_values.append(rv.data[index])
         else:
             print("selection removed for {0}".format(rv.data[index]))
-            self.selected_values.remove(rv.data[index])
+            try:
+                self.selected_values.remove(rv.data[index])
+            except:
+                print('unable to delete')
 
 
 class RV(RecycleView):  # ---------------------------popup?
