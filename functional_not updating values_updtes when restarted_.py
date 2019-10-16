@@ -46,6 +46,7 @@ from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, Screen
 import datepicker
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
@@ -128,11 +129,11 @@ Builder.load_string("""
 
 <SelectableLabel>:
     # Draw a background to indicate selection
-    col1:col1
-    col2:col2
-    col3:col3
-    col4:col4
-    col5:col5
+    col_1:col_1
+    col_2:col_2
+    col_3:col_3
+    col_4:col_4
+    col_5:col_5
     canvas.before:
         Color:
             rgba: (.0, 0.9, .1, .3) if self.selected else (0, 0, 0, 1)
@@ -140,15 +141,20 @@ Builder.load_string("""
             pos: self.pos
             size: self.size
     Label:
-        id:col1
+        id:col_1
+        text:'None'
     Label:
-        id:col2
+        id:col_2
+        text:'None'
     Label:
-        id:col3
+        id:col_3
+        text:'None'
     Label:
-        id:col4
+        id:col_4
+        text:'None'
     Label:
-        id:col5
+        id:col_5
+        text:'None'
 <Imagebutton>:
     size_hint: (None, None)
 
@@ -368,6 +374,7 @@ Builder.load_string("""
     slider:slider
     val:val
     recycleview:recycleview
+    FloatLayout:
         size_hint:1,0.5
         padding : 10, 10
         Customlabel:
@@ -678,17 +685,20 @@ class Deleting(Screen):
 
     def refresh(self):
         global db
-        print(db, db.show_all())
+        set_database()
+        db.insert('M', '12.10.19', 5, 7, 'h')
+        # print(db, db.show_all())
         try:
             database_values = db.show_all()
-            self.set_rv_to_none()
+            self.recycleview.data = []
             for tuples in database_values:
                 print(tuples[0])
                 self.recycleview.data.append({'col1': {'text': str(tuples[0])}, 'col2': {'text': str(tuples[1])}, 'col3': {
                                              'text': str(tuples[2])}, 'col4': {'text': str(tuples[3])}, 'col5': {'text': str(tuples[4])}})
                 # {[ {'label2': {'text': 'pineapple'}, 'label3': {'text': 'cat'} }, {'label2': {'text': 'apple'}, 'label3': {'text': 'rat'}}, {'label2': {'text': 'banana'}, 'label3': {'text': 'dog'}}, {'label2': {'text': 'pear'}, 'label3': {'text': 'bat'}}]}
-            # print(database_values)--no need of zip here
+            # print("Nope", self.recycleview.data)  # - -no need of zip here
         except:
+            self.set_rv_to_none()
             error = 'No Data Exist to update yet'
             print(error)
 
@@ -716,6 +726,7 @@ class Deleting(Screen):
         # print(db.show_all())  # -----------------testing
         self.slider.max = max_view
         self.set_rv_to_none()
+        self.refresh()
 
 
 #------------------------SETTING_INTERFACE---------------------------------
@@ -861,20 +872,21 @@ class SelectableLabel(RecycleDataViewBehavior, GridLayout):
     selectable = BooleanProperty(True)
     cols = 5
     selected_values = []
-    col1 = ObjectProperty(None)
-    col2 = ObjectProperty(None)
-    col3 = ObjectProperty(None)
-    col4 = ObjectProperty(None)
-    col5 = ObjectProperty(None)
+    col_1 = ObjectProperty(None)
+    col_2 = ObjectProperty(None)
+    col_3 = ObjectProperty(None)
+    col_4 = ObjectProperty(None)
+    col_5 = ObjectProperty(None)
 
     def refresh_view_attrs(self, rv, index, data):
         ''' Catch and handle the view changes '''
         self.index = index
-        self.col1.text = str(index)
-        self.col2.text = data['col2']['text']
-        self.col3.text = data['col3']['text']
-        self.col4.text = data['col4']['text']
-        self.col5.text = data['col5']['text']
+        print("To be parsed::", data['col1']['text'])
+        self.col_1.text = data['col1']['text']#name matching col1 wont work as name is matching with it's base class
+        self.col_2.text = data['col2']['text']#dictionary from its rv and selectable class
+        self.col_3.text = data['col3']['text']
+        self.col_4.text = data['col4']['text']
+        self.col_5.text = data['col5']['text']
 
         return super().refresh_view_attrs(
             rv, index, data)
