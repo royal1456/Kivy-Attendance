@@ -105,7 +105,7 @@ def get_data():
             max_view = int(values[4][1])
             data = values[5][1]
     except:
-        error = 'unable to read database of settings'
+        error = 'Internl error code:unable to read database of settings'
         print(error)
         set_data()
         get_data()
@@ -228,8 +228,11 @@ Builder.load_string("""
 <RV>:
     viewclass: 'SelectableLabel'
     SelectableRecycleBoxLayout:
-        default_pos_hint:{"x":0.01}
-        default_size_hint: 0.3,0.1
+        default_pos_hint:{"x":0.01,}
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
         orientation: 'vertical'
         multiselect: True
         touch_multiselect: True
@@ -665,7 +668,8 @@ class Deleting(Screen):
         switch_id = ObjectProperty(None)
         slider = ObjectProperty(None)
         val = ObjectProperty(None)
-        row = ListProperty([])
+        row = ListProperty([])  # list because data is type of kivy list object
+        no_entries = {}
         recycleview = ObjectProperty(None)
 
     def on_enter(self):
@@ -685,47 +689,60 @@ class Deleting(Screen):
 
     def refresh(self):
         global db
-        set_database()
-        db.insert('M', '12.10.19', 5, 7, 'h')
+        # db.insert('M', '12.10.19', 5, 7, 'h')
         # print(db, db.show_all())
-        try:
-            database_values = db.show_all()
-            self.recycleview.data = []
-            for tuples in database_values:
-                print(tuples[0])
-                self.recycleview.data.append({'col1': {'text': str(tuples[0])}, 'col2': {'text': str(tuples[1])}, 'col3': {
-                                             'text': str(tuples[2])}, 'col4': {'text': str(tuples[3])}, 'col5': {'text': str(tuples[4])}})
-                # {[ {'label2': {'text': 'pineapple'}, 'label3': {'text': 'cat'} }, {'label2': {'text': 'apple'}, 'label3': {'text': 'rat'}}, {'label2': {'text': 'banana'}, 'label3': {'text': 'dog'}}, {'label2': {'text': 'pear'}, 'label3': {'text': 'bat'}}]}
-            # print("Nope", self.recycleview.data)  # - -no need of zip here
+        self.recycleview.data = self.row
+        database_values = db.show_all()
+        try:  # handle any excpetion in rv
+            if(database_values):
+                for tuples in database_values:
+                    print(tuples[0])
+                    self.recycleview.data.append({'col1': {'text': str(tuples[0])}, 'col2': {'text': str(tuples[1])}, 'col3': {
+                                                 'text': str(tuples[2])}, 'col4': {'text': str(tuples[3])}, 'col5': {'text': str(tuples[4])}})
+                    # {[ {'label2': {'text': 'pineapple'}, 'label3': {'text': 'cat'} }, {'label2': {'text': 'apple'}, 'label3': {'text': 'rat'}}, {'label2': {'text': 'banana'}, 'label3': {'text': 'dog'}}, {'label2': {'text': 'pear'}, 'label3': {'text': 'bat'}}]}
+                # print("Nope", self.recycleview.data)  # - -no need of zip here
+            else:
+                self.recycleview.data.append(self.no_entries)
         except:
-            self.set_rv_to_none()
-            error = 'No Data Exist to update yet'
+            error = 'Internl error code:error indeleting/rv probs'
             print(error)
 
     # def get_selected(self):
     #     global max, max_view, default, daysoff, days_val, data, error, db
 
     def update(self):
-        global db
-
-        if(SelectableLabel.selected_values):
-            print(SelectableLabel.selected_values)
-        else:
-            error = 'Nothing to Delete here'
+        global db, error
+        try:
+            if(SelectableLabel.selected_values):
+                if(SelectableLabel.selected_values[0] == 'no entry yet'):
+                    self.delete_empty()
+                else:
+                    print(SelectableLabel.selected_values)
+                    for i in SelectableLabel.selected_values:
+                        db.delete(i['col2']['text'])
+                    self.refresh()
+            else:
+                self.delete_empty()
+        except:
+            error = 'Internl error code:error in updating/database commands'
             print(error)
 
-    def set_rv_to_none(self):
-        self.recycleview.data = self.row
+    def delete_empty(self):
+        global error
+        error = 'Nothing to Delete / Update here'
+        print(error)
 
     def set(self):
         # self.data requires----------------- {'text': '9'}]--list pf dictonary
-        self.row = [{'col1': {'text': 'no entry yet'}, 'col2': {'text': 'no entry yet'}, 'col3': {
-            'text': 'no entry yet'}, 'col4': {'text': 'no entry yet'}, 'col5': {'text': 'no entry yet'}}]  # a base row
+        set_database()  # database must exist before delete
+        self.row = [{'col1': {'text': 'Day'}, 'col2': {'text': 'Date'}, 'col3': {
+            'text': 'Lecture Attended'}, 'col4': {'text': 'Lecture took'}, 'col5': {'text': 'Holiday'}}]  # a base row
+        self.no_entries = {'col1': {'text': ''}, 'col2': {'text': ''}, 'col3': {
+            'text': 'no entry yet'}, 'col4': {'text': ''}, 'col5': {'text': ''}}
         print("called set of RV")
         print('rv,setted=', self.row)
         # print(db.show_all())  # -----------------testing
         self.slider.max = max_view
-        self.set_rv_to_none()
         self.refresh()
 
 
@@ -882,8 +899,10 @@ class SelectableLabel(RecycleDataViewBehavior, GridLayout):
         ''' Catch and handle the view changes '''
         self.index = index
         print("To be parsed::", data['col1']['text'])
-        self.col_1.text = data['col1']['text']#name matching col1 wont work as name is matching with it's base class
-        self.col_2.text = data['col2']['text']#dictionary from its rv and selectable class
+        # name matching col1 wont work as name is matching with it's base class
+        self.col_1.text = data['col1']['text']
+        # dictionary from its rv and selectable class
+        self.col_2.text = data['col2']['text']
         self.col_3.text = data['col3']['text']
         self.col_4.text = data['col4']['text']
         self.col_5.text = data['col5']['text']
@@ -909,7 +928,7 @@ class SelectableLabel(RecycleDataViewBehavior, GridLayout):
             try:
                 self.selected_values.remove(rv.data[index])
             except:
-                print('unable to delete')
+                print('unable to delete in rv class')
 
 
 class RV(RecycleView):  # ---------------------------popup?
