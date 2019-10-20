@@ -527,9 +527,18 @@ Builder.load_string("""
 <View_data>:
     name:"view_data"
     FloatLayout:
+        cp:cp
         Customlabel:
             text:'Viewing Records'
             pos_hint:{'x':0.3,'y':0.9}
+        CircularProgressBar:
+            id:cp
+            size_hint: (None, None)
+            height: root.height*0.2
+            width:  root.height*0.2
+            max: 100
+            pos_hint:{'x':0.4,'y':0.65}
+
         Custombutton:
             font_size:14
             size_hint:0.06,0.06
@@ -794,12 +803,34 @@ class Set(Screen):
     pass
 
 
+#-----!@$#%^&*()- Clock.schedule_once(self.checkdate)
+
 #------------------------VIEW_DATA_INTERFACE---------------------------------
 
 
 class View_data(Screen):
-    pass
+    def __init__(self, **kwargs):
+        Clock.schedule_once(self._do_setup)
 
+    def _do_setup(self, *args):
+        cp = ObjectProperty(None)
+        self.max_value = 50
+        steps = self.max_value * 0.25
+        e = Clock.schedule_interval(
+            partial(self.animate, self.max_value, steps), 0.03)
+
+    self.cp.value = 0
+
+    def on_enter(self):
+        self.cp.height = 0
+
+    def animate(self, max, steps, dt):
+        self.cp.height = app.root.height * 0.2
+        print(self.cp.value)
+        if(self.cp.value == 100 or self.cp.value >= max):
+            self.cp.set_label(self.max_value)
+        else:
+            self.cp.set_value(self.cp.value + steps)
 
 #------------------------ESSENTIAL_REQUIREMENT---------------------------------
 
@@ -939,6 +970,75 @@ class RV(RecycleView):  # ---------------------------popup?
 #---------up-----------------------------
 
 
+class CircularProgressBar(ProgressBar):
+
+    def __init__(self, **kwargs):
+        super(CircularProgressBar, self).__init__(**kwargs)
+
+        # Set constant for the bar thickness
+        self.thickness = 40
+
+        # Create a direct text representation
+        self.label = CoreLabel(text="0%", font_size=self.thickness)
+
+        # Initialise the texture_size variable
+        self.texture_size = None
+
+        # Refresh the text
+        self.refresh_text()
+
+        # Redraw on innit
+        self.draw()
+
+    def draw(self):
+
+        with self.canvas:
+
+            # Empty canvas instructions
+            self.canvas.clear()
+
+            # Draw no-progress circle
+            Color(0.26, 0.26, 0.26)
+            Ellipse(pos=self.pos, size=self.size)
+
+            # Draw progress circle, small hack if there is no progress (angle_end = 0 results in full progress)
+            Color(1, 0, 0)
+            Ellipse(pos=self.pos, size=self.size,
+                    angle_end=(0.001 if self.value_normalized == 0 else self.value_normalized * 360))
+
+            # Draw the inner circle (colour should be equal to the background)
+            Color(0, 0, 0)
+            Ellipse(pos=(self.pos[0] + self.thickness / 2, self.pos[1] + self.thickness / 2),
+                    size=(self.size[0] - self.thickness, self.size[1] - self.thickness))
+            print('s', self.pos[0], self.thickness,
+                  self.pos[1], self.thickness)
+            # Center and draw the progress text
+            Color(1, 0, 0)  # s 0 40 0 40
+
+ # 200 73 200 48
+            print('\n', self.size[0], self.texture_size[0],
+                  self.size[1], self.texture_size[1])
+            Rectangle(texture=self.label.texture, size=self.texture_size,
+                      pos=(self.size[0] / 2 - self.texture_size[0] / 2 + self.pos[0], self.size[1] / 2 - self.texture_size[1] / 2 + self.pos[1]))
+
+    def refresh_text(self):
+        # Render the label
+        self.label.refresh()
+
+        # Set the texture size each refresh
+        self.texture_size = list(self.label.texture.size)
+
+    def set_value(self, value):
+        time.sleep(0.01)
+        # Update the progress bar value
+        self.value = value
+
+        # Update textual value and refresh the texture
+        self.label.text = str(int(self.value_normalized * 100)) + "%"
+        self.refresh_text()
+
+        # Draw all the elements
+        self.draw()
 #------------------------SCREEN_MANAGER---------------------------------
 
 
