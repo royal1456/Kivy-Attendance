@@ -814,23 +814,23 @@ class View_data(Screen):
 
     def _do_setup(self, *args):
         cp = ObjectProperty(None)
+
+    def on_enter(self):
+        self.cp.height = 0
+        self.cp.value = 0
         self.max_value = 50
         steps = self.max_value * 0.25
         e = Clock.schedule_interval(
             partial(self.animate, self.max_value, steps), 0.03)
 
-    self.cp.value = 0
-
-    def on_enter(self):
-        self.cp.height = 0
-
     def animate(self, max, steps, dt):
         self.cp.height = app.root.height * 0.2
         print(self.cp.value)
-        if(self.cp.value == 100 or self.cp.value >= max):
-            self.cp.set_label(self.max_value)
-        else:
-            self.cp.set_value(self.cp.value + steps)
+        # if(self.cp.value == 100 or self.cp.value >
+        #     = max):
+        #     self.cp.set_label(self.max_value)
+        # else:
+        #     self.cp.set_value(self.cp.value + steps)
 
 #------------------------ESSENTIAL_REQUIREMENT---------------------------------
 
@@ -1028,14 +1028,17 @@ class CircularProgressBar(ProgressBar):
         # Set the texture size each refresh
         self.texture_size = list(self.label.texture.size)
 
+    def set_label(self, value):
+        self.label.text = str(int(self.value_normalized * 100)) + "%"
+        self.refresh_text()
+
     def set_value(self, value):
         time.sleep(0.01)
         # Update the progress bar value
         self.value = value
 
         # Update textual value and refresh the texture
-        self.label.text = str(int(self.value_normalized * 100)) + "%"
-        self.refresh_text()
+        self.set_label(self.value)
 
         # Draw all the elements
         self.draw()
@@ -1050,7 +1053,7 @@ screen_manager.add_widget(MainWindow(name="main"))
 screen_manager.add_widget(Updating(name="update"))
 screen_manager.add_widget(Deleting(name="delete"))
 screen_manager.add_widget(Set(name="set"))
-screen_manager.add_widget(View_data(name="View_data"))
+screen_manager.add_widget(View_data(name="view_data"))
 # Create the App class
 
 
