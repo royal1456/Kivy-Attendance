@@ -526,8 +526,8 @@ Builder.load_string("""
 
 <View_data>:
     name:"view_data"
+    cp:cp
     FloatLayout:
-        cp:cp
         Customlabel:
             text:'Viewing Records'
             pos_hint:{'x':0.3,'y':0.9}
@@ -810,27 +810,29 @@ class Set(Screen):
 
 class View_data(Screen):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         Clock.schedule_once(self._do_setup)
 
     def _do_setup(self, *args):
         cp = ObjectProperty(None)
+        app = App.get_running_app()
+        self.cp.height = app.root.height * 0.2
 
     def on_enter(self):
-        self.cp.height = 0
         self.cp.value = 0
+        self.cp.opacity = 0
         self.max_value = 50
         steps = self.max_value * 0.25
         e = Clock.schedule_interval(
             partial(self.animate, self.max_value, steps), 0.03)
 
     def animate(self, max, steps, dt):
-        self.cp.height = app.root.height * 0.2
+        self.cp.opacity = 1
         print(self.cp.value)
-        # if(self.cp.value == 100 or self.cp.value >
-        #     = max):
-        #     self.cp.set_label(self.max_value)
-        # else:
-        #     self.cp.set_value(self.cp.value + steps)
+        if(self.cp.value == 100 or self.cp.value >= max):
+            self.cp.set_label(self.max_value)
+        else:
+            self.cp.set_value(self.cp.value + steps)
 
 #------------------------ESSENTIAL_REQUIREMENT---------------------------------
 
@@ -1053,7 +1055,7 @@ screen_manager.add_widget(MainWindow(name="main"))
 screen_manager.add_widget(Updating(name="update"))
 screen_manager.add_widget(Deleting(name="delete"))
 screen_manager.add_widget(Set(name="set"))
-screen_manager.add_widget(View_data(name="view_data"))
+screen_manager.add_widget(View_data(name="View_data"))
 # Create the App class
 
 
