@@ -816,11 +816,11 @@ class View_data(Screen):
     def _do_setup(self, *args):
         cp = ObjectProperty(None)
         app = App.get_running_app()
+        self.cp.opacity = 0
         self.cp.height = app.root.height * 0.2
 
     def on_enter(self):
         self.cp.value = 0
-        self.cp.opacity = 0
         self.max_value = 50
         steps = self.max_value * 0.25
         e = Clock.schedule_interval(
