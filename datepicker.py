@@ -1,6 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+# Notes:datepicker as a base a textinpt. and it first  call its init ui method
+# and call calendar widget which call its inside init ui where state change and
+# other few parameters for my project are declared inside it in end of this
+# module are some function to calculate and ftech data to display for
+# representing calendar.calendar widget bck color ----unknown?????----
+# transition effect are used .on one screen widgets and added and modified later.
+# --ctrl+j to join and alt+q to wrap
 ###########################################################
 # KivyCalendar (X11/MIT License)
 # Calendar & Date picker widgets for Kivy (http://kivy.org)
@@ -19,7 +25,7 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.core.window import Window
-from kivy.properties import NumericProperty, ReferenceListProperty, BooleanProperty
+from kivy.properties import ObjectProperty, NumericProperty, ReferenceListProperty, BooleanProperty
 
 ###########################################################
 Builder.load_string("""
@@ -107,13 +113,12 @@ class DatePicker(TextInput):
 class CalendarWidget(RelativeLayout):
     """ Basic calendar widget """
     list_tokk_off = []
-    state_change = False
+    state = ObjectProperty(None)
 
     def __init__(self, as_popup=False, touch_switch=False, *args, **kwargs):
         super(CalendarWidget, self).__init__(*args, **kwargs)
         self.as_popup = as_popup
         self.touch_switch = touch_switch
-        self.state_change = BooleanProperty(False)
         self.prepare_data()
         self.init_ui()
 
@@ -213,7 +218,7 @@ class CalendarWidget(RelativeLayout):
         """ Get day value from pressed button """
 
         self.active_date[0] = int(inst.text)
-        self.state_change = True
+        self.state = inst
         if self.as_popup:
             self.parent_popup.dismiss()
 

@@ -12,6 +12,18 @@ init has no self for object property but need 1 when accesing
 float layots's size hint is only accesed not pos hint
 
 https://stackoverflow.com/questions/49935190/kivy-how-to-initialize-the-viewclass-of-the-recycleview-dynamically
+https://kivy.org/doc/stable/api-kivy.properties.html--props,bind
+in kivy .bind==@property
+    def state_change(self):
+        return _state_change
+
+    @state_change.setter
+    def state_change(self, value):
+        print(value, 'LOL--Changed', self.calendar._state_change)
+
+
+# print(value, 'LOL--Changed', self.calendar.state)both prints same
+        # print(self.calendar, instance)both prints same
 '''
 '''
 -------------bug----------
@@ -527,6 +539,7 @@ Builder.load_string("""
 <View_data>:
     name:"view_data"
     cp:cp
+    calendar:calendar
     FloatLayout:
         Customlabel:
             text:'Viewing Records'
@@ -538,7 +551,12 @@ Builder.load_string("""
             width:  root.height*0.2
             max: 100
             pos_hint:{'x':0.4,'y':0.65}
-
+        CalendarWidget:
+            id:calendar
+           ## pHint:(0.5,0.5)
+            pos_hint:{'x':0.1,'y':0.05}
+            size_hint:(0.6,0.6)
+            padding : 10, 10
         Custombutton:
             font_size:14
             size_hint:0.06,0.06
@@ -815,9 +833,16 @@ class View_data(Screen):
 
     def _do_setup(self, *args):
         cp = ObjectProperty(None)
+        calendar = ObjectProperty(None)
         app = App.get_running_app()
         self.cp.opacity = 0
         self.cp.height = app.root.height * 0.2
+        self.calendar.init_ui([17, 18, 19])  # --tKWN OFF
+
+    def on_btn_press(self, instance, value):
+        # print(value, 'LOL--Changed', self.calendar.state)both prints same
+        # print(self.calendar, instance)both prints same
+        print(instance.active_date)
 
     def on_enter(self):
         self.cp.value = 0
@@ -825,12 +850,15 @@ class View_data(Screen):
         steps = self.max_value * 0.25
         e = Clock.schedule_interval(
             partial(self.animate, self.max_value, steps), 0.03)
+        self.calendar.bind(state=self.on_btn_press)  # state in calendar class
+        # self.check()
 
     def animate(self, max, steps, dt):
         self.cp.opacity = 1
         print(self.cp.value)
         if(self.cp.value == 100 or self.cp.value >= max):
             self.cp.set_label(self.max_value)
+            return False
         else:
             self.cp.set_value(self.cp.value + steps)
 
