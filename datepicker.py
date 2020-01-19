@@ -122,17 +122,19 @@ class CalendarWidget(RelativeLayout):
         self.prepare_data()
         self.init_ui()
 
-    def init_ui(self, l=[]):
+    def init_ui(self, state=False, list_tokk_off=[], list_holiday_occured=[]):
 
         self.left_arrow = ArrowButton(id='left_arrow', text="<", on_press=self.go_prev,
                                       pos_hint={"top": 1, "left": 0})
 
         self.right_arrow = ArrowButton(id='right_arrow', text=">", on_press=self.go_next,
                                        pos_hint={"top": 1, "right": 1})
-        self.list_tokk_off = l
+        self.list_tokk_off = list_tokk_off
+        self.list_holiday_occured = list_holiday_occured
+        DayNumWeekendButton.background_color = (
+            0, 0, 1, 1) if state else (1, 0, 0, 1)
         self.add_widget(self.left_arrow)
         self.add_widget(self.right_arrow)
-
         # Title
         self.title_label = MonthYearLabel(text=self.title)
         self.add_widget(self.title_label)
@@ -140,7 +142,6 @@ class CalendarWidget(RelativeLayout):
         # ScreenManager
         self.sm = MonthsManager()
         self.add_widget(self.sm)
-
         self.create_month_scr(self.quarter[1], toogle_today=True)
 
     def create_month_scr(self, month, toogle_today=False):
@@ -166,11 +167,14 @@ class CalendarWidget(RelativeLayout):
         for week in month:
             for day in week:
                 # day--(30, 4, 0)
-                if(day[0] in self.list_tokk_off):  # work days
+                handeled_date=datetime.date(self.active_date[2],self.active_date[1],day[0]).strftime("%Y-%m-%d") 
+                if(handeled_date in self.list_tokk_off):  # work days
                     print(day, 'called')
                     tbtn = DayoffButton(text=str(day[0]))
-                elif day[1] >= 5:  # weekends
+                elif ((day[1] >= 5)or handeled_date in self.list_holiday_occured):  # weekends
                     tbtn = DayNumWeekendButton(text=str(day[0]))
+                    print("Day caught is", day[0], "with",
+                          DayNumWeekendButton.background_color)
 
                 else:
                     tbtn = DayNumButton(text=str(day[0]))
@@ -320,17 +324,15 @@ class DayButton(ToggleButton):
 
 
 class DayNumButton(DayButton):
-    pass
+    background_color = (0, 1, 0, 1)
 
 
 class DayoffButton(DayButton):
-    background_color = (249 / 255, 249 / 255, 10 / 255, 1)
-    pass
+    background_color = (1, 0, 0, 1)
 
 
 class DayNumWeekendButton(DayButton):
-    background_color = (1, 0, 0, 1)
-
+    pass
 
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
@@ -346,7 +348,7 @@ class DayNumWeekendButton(DayButton):
 
 
 from calendar import month_name, day_abbr, Calendar, monthrange
-from datetime import datetime
+import datetime
 from locale import getdefaultlocale
 
 
@@ -483,13 +485,13 @@ def get_quarter(y, m):
 def today_date_list():
     """ Return list with today date """
 
-    return [datetime.now().day, datetime.now().month, datetime.now().year]
+    return [datetime.datetime.now().day, datetime.datetime.now().month, datetime.datetime.now().year]
 
 
 def today_date():
     """ Return today date dd.mm.yyyy like 28.02.2015 """
 
-    return datetime.now().strftime("%d/%m/%Y")
+    return datetime.datetime.now().strftime("%d/%m/%Y")
 
 
 if __name__ == "__main__":

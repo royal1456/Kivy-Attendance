@@ -1,8 +1,9 @@
 '''
 pHint = size of calendar
-
+date handeled at backend=%Y-%m-%d;frontend:"%d-%m-%Y"
 size_hint = size of text label
-
+size_hint:popup ka
+pos_hint screen ka
 imp for correct placements:
      size: self.texture_size
     size_hint: None,None
@@ -131,7 +132,9 @@ def set_database():
     db = database(max, data)
     db.create()
 
-
+def parse_date(text):
+    day, month, year = (int(i) for i in text.split('-'))
+    return day, month, year
 Builder.load_string("""
 #:import Factory kivy.factory.Factory
 
@@ -199,17 +202,28 @@ Builder.load_string("""
     auto_dismiss: False
     title:"Invalid Entry"
     label:label
+    layout:layout
     size_hint:0.5,0.5
     FloatLayout:
-        Customlabel:
-            id:label
-            pos_hint:{'x':0.015,'y':0.5}
-            font_size:23
-        Custombutton:
-            size_hint:0.2,0.2
-            pos_hint:{'x':0.4,'y':0.16}
-            text: 'OK'
-            on_release: root.dismiss()
+        pos_hint:{'center_y':.5,'center_x':.5}
+        ##after dividing screen now .5,.5 is base_size all iszes will be added accordingly
+        FloatLayout:
+            size_hint:1,0.5
+            ##pos:root.width*.2, root.height / 2
+            pos_hint:{'top':0.4,'center_x':0.2}
+            Customlabel:
+                id:label
+                pos_hint:{'x':0.4,'y':1}
+                font_size:23
+            Custombutton:
+                size_hint:0.2,0.2
+                pos_hint:{'center_x':0.8,'center_y':0.5}
+                text: 'OK'
+                on_release: root.dismiss(),root.my_widget.remove_widgets()
+        FloatLayout:
+            size_hint:1,0.5
+            pos_hint:{'top':0.8,'center_x':0.3}
+            id:layout
 
 <MyPopup>:
     auto_dismiss: False
@@ -643,7 +657,8 @@ class Updating(Screen):
 
     def checkdate(self, *args, **kwargs):
         global max, max_view, default, daysoff, days_val, data, error, db
-        day, month, year = (int(i) for i in self.datepickers.text.split('-'))
+        day, month, year= parse_date(self.datepickers.text)
+        print(year, month, day)
         self.days = datetime.date(year, month, day).strftime("%A")
         if(self.days in days_val.split(',')):
             print('callllled')
@@ -653,9 +668,11 @@ class Updating(Screen):
         global error, db
         print("called submit", self.datepickers.text)
         db.create()
-        self.checkdate()
+        day, month, year = parse_date(self.datepickers.text)
+        parsed_date=datetime.date(
+            year, month, day).strftime("%Y-%m-%d")
         try:
-            db.insert(self.days, self.datepickers.text, int(self.spinner_up_la.text), int(
+            db.insert(self.days, parsed_date, int(self.spinner_up_la.text), int(
                 self.spinner_up_lt.text), self.holiday)
         except:
             self.i.open()
@@ -663,6 +680,10 @@ class Updating(Screen):
         print(db.show_all(), db)  # -----------------testing
         self.set()
         self.t.dismiss()
+
+    def remove_widgets(self):
+        self.i.layout.clear_widgets()
+
 
     def set_la_lt_default(self):
         self.spinner_up_la.values = tuple([str(x) for x in range(max + 1)])
@@ -677,9 +698,9 @@ class Updating(Screen):
         global max, max_view, default, daysoff, days_val, data, error, db
         #-----------la-lt-being-setted-----------------------
         self.datepickers.text = ('-'.join(self.datepickers.text.split('/')))
+        print("Set func date picker value", self.datepickers.text)
         self.set_la_lt_default()
         self.box_id.value = False
-    pass
 
 
 #------------------------DELETING_INTERFACE---------------------------------
@@ -836,31 +857,73 @@ class View_data(Screen):
         calendar = ObjectProperty(None)
         app = App.get_running_app()
         self.cp.opacity = 0
+        self.i = Infopopup(self)
         self.cp.height = app.root.height * 0.2
-        self.calendar.init_ui([17, 18, 19])  # --tKWN OFF
+        # self.calendar.init_ui([17, 18, 19], [9])  # --tKWN OFF
 
     def on_btn_press(self, instance, value):
+        global db
         # print(value, 'LOL--Changed', self.calendar.state)both prints same
         # print(self.calendar, instance)both prints same
-        print(instance.active_date)
+        print(instance.active_date)#handling list
+        text_maker = [str(i) for i in instance.active_date]
+        # equilizing date adding 0 before
+        # if(len(text_maker[0]) % 2 == 1):
+        #     text_maker[0] = '0' + text_maker[0]
+        text_maker = '-'.join(text_maker)
+        day, month, year= parse_date(text_maker)
+        text_maker=datetime.date(
+            year, month, day).strftime("%Y-%m-%d")
+        self.i.open()
+        self.i.title = 'ok'
+        info = db.show_by_date(text_maker)
+        print(info, type(info))
+        # holiday represented by col
+        if(len(info) > 0):
+            i = info[0]
+            grid = GridLayout(cols=4, pos_hint={'x': 0.2, 'y': 0.6})
+            grid.add_widget(Label(text=str(i[0]), font_size=14))
+            grid.add_widget(Label(text=str(i[1]), font_size=14))
+            grid.add_widget(Label(text=str(i[2]), font_size=14))
+            grid.add_widget(Label(text=str(i[3]), font_size=14))
+            self.i.layout.add_widget(grid)
+        else:
+            self.remove_widgets()  # it may delete exit button
+        print("Valuees are:", self.i.layout.height, self.i.layout.width,
+              self.i.layout.pos, self.i.layout.pos_hint)
+
+    def remove_widgets(self):
+        self.i.layout.clear_widgets()
 
     def on_enter(self):
         self.cp.value = 0
-        self.max_value = 50
-        steps = self.max_value * 0.25
+        self.max_value = db.percentage()
+        steps = self.max_value * 0.25 if self.max_value!=0 else 0
         e = Clock.schedule_interval(
             partial(self.animate, self.max_value, steps), 0.03)
         self.calendar.bind(state=self.on_btn_press)  # state in calendar class
+        _, _, info_off = db.working_la_lt_find()
+        info_holiday = db.show_holidays('h')
+        #date alteration for this handeled at backend(parsed as %Y-%m-%d)
+        # info_off=[datetime.date(
+        #     *parse_date(i)).strftime("%d-%m-%Y") for i in info_off ]#parse will reurnas yr,m,d
+        # info_holiday=[datetime.date(
+            # *parse_date(i)).strftime("%d-%m-%Y") for i in info_holiday ]
+        self.calendar.init_ui(True, info_off, info_holiday)
+        print("info_off", info_off, info_holiday)
+
         # self.check()
 
     def animate(self, max, steps, dt):
         self.cp.opacity = 1
         print(self.cp.value)
-        if(self.cp.value == 100 or self.cp.value >= max):
+        if(self.cp.value == 100 or self.cp.value > max):#= not handeled as first inital value is required to call draw() for correct positioning instead steps is handeled
             self.cp.set_label(self.max_value)
             return False
         else:
             self.cp.set_value(self.cp.value + steps)
+            if(self.cp.value==0):
+                return False
 
 #------------------------ESSENTIAL_REQUIREMENT---------------------------------
 
@@ -931,6 +994,7 @@ class Infopopup(Popup):
         super().__init__(**kwargs)
         self.my_widget = my_widget  # mywidget instance is used to accees child values
         label = ObjectProperty(None)
+        layout = ObjectProperty(None)
 
 
 class Imagebutton(ButtonBehavior, Image):  # -------------oder yhi hpga call ka
